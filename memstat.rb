@@ -1,27 +1,45 @@
 #!ruby
 
 def print_memstat(*mrubies)
-  puts "%-6s   %-6s      %-6s  %s\n" % %w(text rodata malloc binary)
+  total = []
+  sep = nil
 
   mrubies.each do |mruby|
-    stat = { mruby: mruby }
+    total << stat = { mruby: mruby }
+
+    puts "#{sep}$ readelf -S #{mruby}"
+    sep ||= "\n"
 
     IO.popen(%W(readelf -S #{mruby}), "r") do |readelf|
-      readelf.read.scan(/\.(text|rodata)\b.+\n\s*(\w+)/) do |(name, size)|
+      puts out = readelf.read
+      out.scan(/\.(text|rodata)\b.+\n\s*(\w+)/) do |(name, size)|
         stat[name.to_sym] = size.to_i(16)
       end
     end
 
-    IO.popen(%W(valgrind #{mruby} -e #{""}), "r", err: [:child, :out]) do |valgrind|
-      valgrind.read.scan(/total heap usage: (\d+(?:,\d+)*) allocs, (\d+(?:,\d+)*) frees, (\d+(?:,\d+)*) bytes allocated/) do |(allocs, frees, allocated)|
+    puts "\n$ valgrind #{mruby} -e \"\""
+
+    IO.popen(%W(valgrind #{mruby} -e ""), "r", err: [:child, :out]) do |valgrind|
+      puts out = valgrind.read
+      out.scan(/total heap usage: (\d+(?:,\d+)*) allocs, (\d+(?:,\d+)*) frees, (\d+(?:,\d+)*) bytes allocated/) do |(allocs, frees, allocated)|
         stat.merge!(
           allocs: allocs.gsub(?,, "").to_i,
           frees: frees.gsub(?,, "").to_i,
           allocated: allocated.gsub(?,, "").to_i)
       end
     end
+  end
 
-    printf "%<text>6d + %<rodata>6d with %<allocated>6d  %<mruby>s\n", stat
+  puts <<-HEADER
+
+========================================================================
+
+text       rodata        malloc   (allocs)  binary
+
+  HEADER
+
+  total.each do |stat|
+    printf "%<text>8d + %<rodata>8d with %<allocated>8d (%<allocs>6d)  %<mruby>s\n", stat
   end
 end
 

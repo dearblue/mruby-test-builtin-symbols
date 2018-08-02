@@ -1,0 +1,18 @@
+#!/bin/sh
+
+ruby=ruby25
+
+for i in master builtin-symbols-rev2 builtin-symbols-rev3 builtin-symbols-rev4
+do
+	# `mruby-git` is `git -C $MRUBY_ROOT`
+	mruby-git co $i
+	rake clean all
+	mkdir @$i
+	mv host-* @$i/
+done
+
+$ruby memstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee memstat.log
+$ruby memstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mrbtest") }'` | tee memstat-mrbtest.log
+$ruby measure-to_sym.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee measure-to_sym.log
+$ruby measure-to_s.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee measure-to_s.log
+$ruby mrbstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee mrbstat.log
