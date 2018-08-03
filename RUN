@@ -1,12 +1,27 @@
 #!/bin/sh
 
-ruby=ruby25
+test "$ruby" == "" && ruby=ruby25
+binaries=mruby,mrbstat,mrbtest
+
+if [ "$MRUBY_ROOT" == "" ]
+then
+	echo 'Where is mruby root? - should set $MRUBY_ROOT environment variable'
+	exit 1
+fi
+
+mastertarget=`$ruby -e 'puts %w(host-O host-Os).product(["", "+use_etext_edata"]).map {|x| x.join }.product(%w(/bin/mruby /bin/mrbtest /bin/mrbstat)).map {|x| x.join }'`
+alltarget=`$ruby -e 'puts %w(host-O host-Os).product(["", "+use_etext_edata"]).product(["", "+builtin-symbols", "+builtin-symbols+force-inline"]).map {|x| x.join }.product(%w(/bin/mruby /bin/mrbtest /bin/mrbstat)).map {|x| x.join }'`
 
 for i in master builtin-symbols-rev2 builtin-symbols-rev3 builtin-symbols-rev4
 do
-	# `mruby-git` is `git -C $MRUBY_ROOT`
-	mruby-git co $i
-	rake clean all
+	git -C "$MRUBY_ROOT" checkout $i || exit 2
+	if [ $i == "master" ]
+	then
+		target=$mastertarget
+	else
+		target=$alltarget
+	fi
+	rake clean $target
 	mkdir @$i
 	mv host-* @$i/
 done
@@ -15,4 +30,4 @@ $ruby memstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|bu
 $ruby memstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mrbtest") }'` | tee memstat-mrbtest.log
 $ruby measure-to_sym.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee measure-to_sym.log
 $ruby measure-to_s.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee measure-to_s.log
-$ruby mrbstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mruby") }'` | tee mrbstat.log
+$ruby mrbstat.rb `$ruby -e 'Dir.children("@builtin-symbols-rev2").sort.each {|build| puts Dir.glob("{@master,@builtin*}/#{build}/bin/mrbstat") }'` | tee mrbstat.log

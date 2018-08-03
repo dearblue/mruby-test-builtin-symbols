@@ -5,11 +5,13 @@ ENV["MRUBY_CONFIG"] = MRUBY_CONFIG
 
 Object.instance_eval { remove_const(:MRUBY_CONFIG) }
 
-MRUBY_BASEDIR ||= ENV["MRUBY_BASEDIR"] || "@mruby"
+ENV["MRUBY_ROOT"] ||= MRUBY_ROOT || "@mruby"
+
+Object.instance_eval { remove_const(:MRUBY_ROOT) } if Object.const_defined? :MRUBY_ROOT
 
 ENV["INSTALL_DIR"] = File.join(File.dirname(__FILE__), "bin")
 
-rakefile = "#{MRUBY_BASEDIR}/Rakefile"
+rakefile = "#{ENV["MRUBY_ROOT"]}/Rakefile"
 
 unless File.exist? rakefile
   $stderr.puts <<-ERR
@@ -18,7 +20,7 @@ unless File.exist? rakefile
 \tLook again a configuration, and try rake.
 
 \t* MRUBY_CONFIG=#{ENV["MRUBY_CONFIG"]}
-\t* MRUBY_BASEDIR=#{MRUBY_BASEDIR}
+\t* MRUBY_ROOT=#{ENV["MRUBY_ROOT"]}
 \t* INSTALL_DIR=#{ENV["INSTALL_DIR"]}
   ERR
 

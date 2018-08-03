@@ -45,7 +45,7 @@ end
 
 if $0 == __FILE__
   if ARGV.empty?
-    ARGV << Dir.glob("host-O*/bin/mruby").sort_by { |e| e.gsub(?/, ?\0) }
+    ARGV.concat Dir.glob("host-O*/bin/mruby").sort_by { |e| e.gsub(?/, ?\0) }
   end
 
   print_memstat(*ARGV)
